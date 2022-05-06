@@ -1,6 +1,7 @@
 package com.example.javaasyncfeign.controller;
 
 import com.example.javaasyncfeign.client.ClientHttpFeign;
+import com.example.javaasyncfeign.client.DemoHttpFeign;
 import com.example.javaasyncfeign.domain.Demo;
 import com.example.javaasyncfeign.domain.Example;
 import com.example.javaasyncfeign.domain.Response;
@@ -22,28 +23,36 @@ public class ClientController {
     @Autowired
     ClientHttpFeign clientHttpFeign;
 
+    @Autowired
+    DemoHttpFeign demoHttpFeign;
+
     @GetMapping("/teste")
     ResponseEntity<?> teste() {
-        var request = new ArrayList<CompletableFuture<?>>();
+        try {
+            var request = new ArrayList<CompletableFuture<?>>();
 
-        request.add(step(clientHttpFeign::request1));
-        request.add(step(clientHttpFeign::request2));
+            request.add(step(clientHttpFeign::request1));
+            request.add(step(demoHttpFeign::request2));
 
-        var resp = Response.builder().build();
+            var resp = Response.builder().build();
 
-        request.stream()
-                .map(CompletableFuture::join)
-                .peek(System.out::println)
-                .forEach(result -> {
-                    if(result.getClass().isAssignableFrom(Demo.class)) {
-                        var data = (Demo) result;
-                        resp.setText(data.getValue());
-                    } else {
-                        var data = (Example) result;
-                        resp.setNumber(data.getValue());
-                    }
-                });
-        return ResponseEntity.ok(resp);
+            request.stream()
+                    .map(CompletableFuture::join)
+                    .peek(System.out::println)
+                    .forEach(result -> {
+                        if (result.getClass().isAssignableFrom(Demo.class)) {
+                            var data = (Demo) result;
+                            resp.setText(data.getValue());
+                        } else {
+                            var data = (Example) result;
+                            resp.setNumber(data.getValue());
+                        }
+                    });
+
+            return ResponseEntity.ok(resp);
+        } catch (Exception ex) {
+            return ResponseEntity.unprocessableEntity().build();
+        }
     }
 
     @GetMapping("/client")
